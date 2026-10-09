@@ -104,9 +104,15 @@ def test_latency_timer_starts_before_model_inference(monkeypatch, tmp_path: Path
         "features": FEATURES,
         "metrics": {"model_version": "test"},
     }
-    result = service.predict(PredictionRequest(
-        sessions_7d=5, email_opens_30d=8, days_since_last_visit=3,
-        cart_items=2, prior_orders=1, support_tickets_30d=0,
-    ))
+    result = service.predict(
+        PredictionRequest(
+            sessions_7d=5,
+            email_opens_30d=8,
+            days_since_last_visit=3,
+            cart_items=2,
+            prior_orders=1,
+            support_tickets_30d=0,
+        )
+    )
     assert result["request_id"] == "test-request"
     assert fake_monitor.latency == 250.0
