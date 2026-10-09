@@ -42,6 +42,29 @@ the API. A deployment workflow template for a managed container service is in
 `.github/workflows/deploy-cloud-run.yml`; it is intentionally manual and needs
 cloud credentials supplied through GitHub environment secrets.
 
+## Demonstration and verification
+
+After starting the service, open `http://127.0.0.1:8000/docs` to use the interactive API documentation. Submit the sample prediction request above, then inspect:
+
+```bash
+curl http://127.0.0.1:8000/healthz
+curl http://127.0.0.1:8000/readyz
+curl http://127.0.0.1:8000/monitoring
+```
+
+The prediction response identifies the model version and request ID. The monitoring endpoint summarizes request counts and observed latency; the local `traces/requests.jsonl` file records request metadata without raw feature values. These are reference observability features, not a durable production monitoring stack.
+
+For repeatable local checks, run:
+
+```bash
+uv sync --locked --dev
+uv run pytest -q
+uv run ruff check .
+uv run ruff format --check .
+```
+
+The project deliberately uses synthetic data and does not claim deployment to a live cloud service. The cloud deployment workflow is a template, not proof of a deployed endpoint.
+
 ## Evidence
 
 - `docs/EVIDENCE.md` — what is tested and what is not claimed.
