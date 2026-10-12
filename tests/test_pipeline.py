@@ -67,3 +67,52 @@ def test_http_health_and_prediction(tmp_path: Path, monkeypatch):
     )
     assert response.status_code == 200
     assert "model_version" in response.json()
+
+
+def test_latency_timer_starts_before_model_inference(monkeypatch, tmp_path: Path):
+    from model_to_production import service as service_module
+
+    clock_reads = []
+    clock = iter([10.0, 10.25])
+
+    def fake_clock():
+        value = next(clock)
+        clock_reads.append(value)
+        return value
+
+    class FakeModel:
+        def predict_proba(self, row):
+            assert clock_reads == [10.0], "Timer must start before inference"
+            return [[0.2, 0.8]]
+
+    class FakeMonitor:
+        def __init__(self):
+            self.latency = None
+
+        def record(self, **kwargs):
+            return "test-request"
+
+        def observe_latency(self, milliseconds):
+            self.latency = milliseconds
+
+    fake_monitor = FakeMonitor()
+    monkeypatch.setattr(service_module, "monitor", fake_monitor)
+    monkeypatch.setattr(service_module.time, "perf_counter", fake_clock)
+    service = ModelService(tmp_path / "unused.joblib")
+    service.bundle = {
+        "model": FakeModel(),
+        "features": FEATURES,
+        "metrics": {"model_version": "test"},
+    }
+    result = service.predict(
+        PredictionRequest(
+            sessions_7d=5,
+            email_opens_30d=8,
+            days_since_last_visit=3,
+            cart_items=2,
+            prior_orders=1,
+            support_tickets_30d=0,
+        )
+    )
+    assert result["request_id"] == "test-request"
+    assert fake_monitor.latency == 250.0
