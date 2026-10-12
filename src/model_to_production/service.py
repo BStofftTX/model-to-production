@@ -49,7 +49,8 @@ class ModelService:
             columns=self.bundle["features"],
         )
         start = time.perf_counter()
-        probability = float(self.bundle["model"].predict_proba(row)[0, 1])
+        probabilities = self.bundle["model"].predict_proba(row)
+        probability = float(probabilities[0][1])
         request_id = monitor.record(
             features=values,
             probability=probability,
